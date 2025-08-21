@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-Layer Permutator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        #canvas-container {
+            border: 1px solid #000;
+            background-color: #fff;
+        }
+        #mnemonic-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px;
+            justify-content: center;
+        }
+        .mnemonic {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            user-select: none;
+            text-align: center;
+            width: 60px;
+        }
+        .mnemonic:hover {
+            background-color: #45a049;
+        }
+        #sentence {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="mnemonic-container"></div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="sentence">Sentence: </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script>
+        // Matter.js setup
+        const { Engine, Render, World, Bodies, Body, Events } = Matter;
+        const engine = Engine.create();
+        const canvas = document.getElementById('canvas');
+        const render = Render.create({
+            canvas: canvas,
+            engine: engine,
+            options: {
+                width: 800,
+                height: 600,
+                wireframes: false,
+                background: '#ffffff'
+            }
+        });
+
+        // Mnemonics
+        const mnemonics = ['hlt', 'jmp', 'beq', 'lod', 'sto', 'inc', 'add', 'mult', 'call'];
+        const mnemonicContainer = document.getElementById('mnemonic-container');
+        const sentenceDiv = document.getElementById('sentence');
+        let sentence = [];
+
+        // Create mnemonic buttons
+        mnemonics.forEach((mnemonic, index) => {
+            const div = document.createElement('div');
+            div.className = 'mnemonic';
+            div.textContent = mnemonic;
+            div.addEventListener('click', () => createFallingMnemonic(mnemonic, index));
+            mnemonicContainer.appendChild(div);
+        });
+
+        // Create firewall (grate with 3 holes)
+        const grateY = 400;
+        const grateThickness = 20;
+        const holeWidth = 60;
+        const holeSpacing = 150;
+        const grateParts = [
+            Bodies.rectangle(100, grateY, 200, grateThickness, { isStatic: true, render: { fillStyle: '#333' } }),
+            Bodies.rectangle(350, grateY, 100, grateThickness, { isStatic: true, render: { fillStyle: '#333' } }),
+            Bodies.rectangle(550, grateY, 100, grateThickness, { isStatic: true, render: { fillStyle: '#333' } }),
+            Bodies.rectangle(750, grateY, 200, grateThickness, { isStatic: true, render: { fillStyle: '#333' } })
+        ];
+        World.add(engine.world, grateParts);
+
+        // Create ground
+        const ground = Bodies.rectangle(400, 590, 800, 20, { isStatic: true, render: { fillStyle: '#333' } });
+        World.add(engine.world, [ground]);
+
+        // Create walls
+        const leftWall = Bodies.rectangle(0, 300, 20, 600, { isStatic: true, render: { fillStyle: '#333' } });
+        const rightWall = Bodies.rectangle(800, 300, 20, 600, { isStatic: true, render: { fillStyle: '#333' } });
+        World.add(engine.world, [leftWall, rightWall]);
+
+        // Function to create a falling mnemonic
+        function createFallingMnemonic(mnemonic, index) {
+            const x = 100 + (index % 5) * 150; // Spread mnemonics across canvas
+            const body = Bodies.rectangle(x, 50, 50, 30, {
+                render: {
+                    fillStyle: '#4CAF50',
+                    text: mnemonic // Store text for rendering
+                },
+                label: mnemonic
+            });
+            World.add(engine.world, body);
+        }
+
+        // Custom render to draw text on bodies
+        Render.run(render);
+        const runner = Matter.Runner.create();
+        Matter.Runner.run(runner, engine);
+
+        // Override rendering to display text
+        Events.on(render, 'afterRender', () => {
+            const context = render.context;
+            context.font = '14px Arial';
+            context.fillStyle = '#fff';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            engine.world.bodies.forEach(body => {
+                if (body.render.text) {
+                    context.fillText(body.render.text, body.position.x, body.position.y);
+                }
+            });
+        });
+
+        // Detect when mnemonics hit the ground
+        Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach(pair => {
+                const bodyA = pair.bodyA;
+                const bodyB = pair.bodyB;
+                if ((bodyA === ground || bodyB === ground) && (bodyA.label !== 'Rectangle Body' || bodyB.label !== 'Rectangle Body')) {
+                    const mnemonicBody = bodyA === ground ? bodyB : bodyA;
+                    if (mnemonicBody.label && !sentence.includes(mnemonicBody.label)) {
+                        sentence.push(mnemonicBody.label);
+                        sentenceDiv.textContent = `Sentence: ${sentence.join(' ')}`;
+                        World.remove(engine.world, mnemonicBody); // Remove after adding to sentence
+                    }
+                }
+            });
+        });
+
+        // Clear sentence on double-click
+        sentenceDiv.addEventListener('dblclick', () => {
+            sentence = [];
+            sentenceDiv.textContent = 'Sentence: ';
+        });
+    </script>
+</body>
+</html>
