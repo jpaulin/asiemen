@@ -64,7 +64,6 @@ def lets_WinDefault():
 
 
 # Dashboard, simple (semicircles, like a BMW car etc)
-# import a 
 
 # PyGame for making graphics like circles, rects.. Mouse
 import pygame
@@ -73,7 +72,6 @@ import math # Mathematics functions
 import time # time handling, clock, walltime
 
 gtick = 0  # globaltick, the "time"
-time  = 0  # time for humans
 
 # Gtick is just the frame-clock
 #  not a human-clock
@@ -86,10 +84,6 @@ time  = 0  # time for humans
 #  brewer 
 # brewer_person 
 # beans into the coffee brewer
-
-#
-def aCup():
-
 
 
 #
